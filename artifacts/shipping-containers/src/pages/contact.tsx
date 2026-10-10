@@ -141,6 +141,8 @@ export default function Contact() {
           email:          data.email,
           phone:          data.phone || "Not provided",
           address:        data.address || "Not provided",
+          delivery_city:  String(data.deliveryCity ?? "").trim(),
+          delivery_zip:   String(data.deliveryZip ?? "").trim(),
           container:      params.get("container"),
           color:          params.get("color") || "Not specified",
           configuration:  params.get("configuration") || "Not specified",
@@ -155,10 +157,8 @@ export default function Contact() {
             duration: params.get("duration") ?? "",
           } : {}),
           delivery_state: params.get("state") || "Not specified",
-           delivery_city: params.get("city") || "Not specified",
-          delivery_zip:   params.get("zip")   || "Not specified",
-           country: params.get("country") || "United States",
-           currency,
+          country:        params.get("country") || "United States",
+          currency,
           notes:          data.notes || "None",
         }),
       });
@@ -276,6 +276,35 @@ export default function Contact() {
                   <div className="space-y-1.5">
                     <Label htmlFor="phone">Phone Number</Label>
                     <Input id="phone" name="phone" type="tel" placeholder="+1 (555) 000-0000" className="bg-background" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="deliveryCity">Delivery City</Label>
+                    <Input
+                      id="deliveryCity"
+                      name="deliveryCity"
+                      required
+                      autoComplete="address-level2"
+                      defaultValue={params.get("city") ?? ""}
+                      placeholder="City"
+                      className="bg-background"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="deliveryZip">
+                      {params.get("country") === "Canada" ? "Postal Code" : "ZIP Code"}
+                    </Label>
+                    <Input
+                      id="deliveryZip"
+                      name="deliveryZip"
+                      required
+                      inputMode={params.get("country") === "Canada" ? "text" : "numeric"}
+                      maxLength={params.get("country") === "Canada" ? 7 : 5}
+                      defaultValue={params.get("zip") ?? ""}
+                      placeholder={params.get("country") === "Canada" ? "e.g. M5V 2T6" : "e.g. 90210"}
+                      className="bg-background"
+                    />
                   </div>
 
                   <div className="space-y-1.5">

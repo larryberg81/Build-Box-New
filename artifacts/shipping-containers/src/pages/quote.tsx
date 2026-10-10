@@ -4,7 +4,7 @@ import { ArrowRight, Check, ChevronDown, ChevronUp, Truck, MapPin, MessageCircle
 import { CONTAINERS as CATALOG_CONTAINERS } from "@/data/containers";
 import { calculateQuoteEstimate, toQuoteContainer } from "@/lib/quote-pricing";
 import { apiUrl } from "@/lib/api";
-import { CANADIAN_LOCATIONS, CANADIAN_PROVINCES, useMarket } from "@/contexts/market";
+import { CANADIAN_PROVINCES, useMarket } from "@/contexts/market";
 
 // ── Quote view of the shared container catalog ───────────────────────────────
 const CONTAINERS = CATALOG_CONTAINERS.map(toQuoteContainer);
@@ -114,6 +114,7 @@ function InquiryWidget({
   containerLabel,
   colorLabel,
   totalPrice,
+  deliveryCity,
   deliveryState,
   deliveryZip,
   mode,
@@ -121,6 +122,7 @@ function InquiryWidget({
   containerLabel: string;
   colorLabel?: string;
   totalPrice: number;
+  deliveryCity: string;
   deliveryState: string;
   deliveryZip: string;
   mode: "purchase" | "rental";
@@ -129,11 +131,17 @@ function InquiryWidget({
   const [open, setOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [deliveryError, setDeliveryError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", message: "" });
   const configuredContainerLabel = colorLabel ? `${containerLabel} — ${colorLabel}` : containerLabel;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!deliveryCity.trim() || !deliveryZip.trim()) {
+      setDeliveryError("Enter a delivery city and ZIP or postal code in Delivery Location before sending.");
+      return;
+    }
+    setDeliveryError("");
     setLoading(true);
     try {
       const body = {
@@ -146,8 +154,9 @@ function InquiryWidget({
         mode,
         estimate: `${formatMoney(totalPrice)} ${currency} (incl. delivery)`,
         country: market === "CA" ? "Canada" : "United States",
+        delivery_city: deliveryCity.trim(),
         delivery_state: deliveryState || "Not specified",
-        delivery_zip: deliveryZip || "Not specified",
+        delivery_zip: deliveryZip.trim(),
         message: form.message || defaultMessage,
       };
       const res = await fetch(apiUrl("/api/contact"), {
@@ -169,7 +178,9 @@ function InquiryWidget({
   };
 
   const defaultMessage = `Hi, I'm interested in the ${configuredContainerLabel} (${mode === "purchase" ? "purchase" : "rental"})${
-    deliveryState ? ` — delivery to ${deliveryState}${deliveryZip ? ` ${deliveryZip}` : ""}` : ""
+    deliveryCity || deliveryState
+      ? ` — delivery to ${[deliveryCity, deliveryState].filter(Boolean).join(", ")}${deliveryZip ? ` ${deliveryZip}` : ""}`
+      : ""
   }. My estimated total is ${formatMoney(totalPrice)} ${currency}. Please send me a formal quote.`;
 
   return (
@@ -212,7 +223,13 @@ function InquiryWidget({
                 <p><span className="font-bold text-foreground">Container:</span> {containerLabel}</p>
                 <p><span className="font-bold text-foreground">Type:</span> {mode === "purchase" ? "Purchase" : "Rental"}</p>
                 <p><span className="font-bold text-foreground">Estimate:</span> {formatMoney(totalPrice)} {currency} (incl. delivery)</p>
-                {deliveryState && <p><span className="font-bold text-foreground">Delivery to:</span> {deliveryState}{deliveryZip ? ` ${deliveryZip}` : ""}</p>}
+                {(deliveryCity || deliveryState) && (
+                  <p>
+                    <span className="font-bold text-foreground">Delivery to:</span>{" "}
+                    {[deliveryCity, deliveryState].filter(Boolean).join(", ")}
+                    {deliveryZip ? ` ${deliveryZip}` : ""}
+                  </p>
+                )}
               </div>
 
               <input
@@ -251,6 +268,9 @@ function InquiryWidget({
                 onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                 className="w-full px-3 py-2 bg-background border border-border text-xs text-muted-foreground focus:outline-none focus:border-primary transition-colors resize-none leading-relaxed"
               />
+              {deliveryError && (!deliveryCity.trim() || !deliveryZip.trim()) && (
+                <p role="alert" className="text-xs text-destructive">{deliveryError}</p>
+              )}
 
               <button
                 type="submit"
@@ -298,15 +318,22 @@ export default function Quote() {
   const [selectedState, setSelectedState]         = useState<string>("");
   const [selectedCity, setSelectedCity]           = useState<string>("");
   const [zipCode, setZipCode]                     = useState<string>("");
+  const [deliveryLocationError, setDeliveryLocationError] = useState("");
   const [sizeFilter, setSizeFilter]               = useState<string>("All");
 
   useEffect(() => {
     setSelectedState("");
     setSelectedCity("");
     setZipCode("");
+    setDeliveryLocationError("");
   }, [market]);
 
   const goToFormalQuote = () => {
+    if (!selectedCity.trim() || !zipCode.trim()) {
+      setDeliveryLocationError("Enter a delivery city and ZIP or postal code to continue.");
+      return;
+    }
+    setDeliveryLocationError("");
     const gensetObj = GENSET_ADDONS.find(g => g.id === selectedGenset)!;
     const modLabels = MODIFICATIONS.filter(m => selectedMods.has(m.id)).map(m => m.label);
     const durationObj = RENTAL_DURATIONS.find(d => d.id === selectedDuration)!;
@@ -619,7 +646,7 @@ export default function Quote() {
             {/* Step 5: Delivery Location */}
             <div>
               <SectionHeader step={5} title="Delivery Location" subtitle="We'll estimate your delivery timeline from the nearest depot." />
-              <div className={`grid grid-cols-1 ${market === "CA" ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-4 mb-4`}>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{market === "CA" ? "Province / Territory" : "State"}</label>
                   <div className="relative">
@@ -627,7 +654,7 @@ export default function Quote() {
                     <select
                       data-testid="state-select"
                       value={selectedState}
-                      onChange={e => { setSelectedState(e.target.value); setSelectedCity(""); }}
+                      onChange={e => setSelectedState(e.target.value)}
                       className="w-full h-11 pl-9 pr-4 bg-card border border-border text-sm font-semibold appearance-none focus:outline-none focus:border-primary transition-colors text-foreground"
                     >
                       <option value="">Select {market === "CA" ? "province" : "state"}…</option>
@@ -637,35 +664,50 @@ export default function Quote() {
                     </select>
                   </div>
                 </div>
-                {market === "CA" && (
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">City</label>
-                    <select
-                      data-testid="city-select"
-                      value={selectedCity}
-                      disabled={!selectedState}
-                      onChange={e => setSelectedCity(e.target.value)}
-                      className="w-full h-11 px-3 bg-card border border-border text-sm font-semibold focus:outline-none focus:border-primary disabled:opacity-50 text-foreground"
-                    >
-                      <option value="">Select city…</option>
-                      {(CANADIAN_LOCATIONS[selectedState] ?? []).map(city => <option key={city} value={city}>{city}</option>)}
-                    </select>
-                  </div>
-                )}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{market === "CA" ? "Postal Code" : "ZIP Code"}</label>
+                  <label htmlFor="delivery-city" className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Delivery City <span className="text-primary">*</span></label>
                   <input
+                    id="delivery-city"
+                    data-testid="city-input"
+                    type="text"
+                    autoComplete="address-level2"
+                    required
+                    value={selectedCity}
+                    onChange={e => {
+                      setSelectedCity(e.target.value);
+                      if (e.target.value.trim() && zipCode.trim()) setDeliveryLocationError("");
+                    }}
+                    className="w-full h-11 px-3 bg-card border border-border text-sm font-semibold focus:outline-none focus:border-primary text-foreground"
+                    placeholder="Enter your city"
+                    aria-invalid={Boolean(deliveryLocationError && !selectedCity.trim())}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="delivery-zip" className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{market === "CA" ? "Postal Code" : "ZIP Code"} <span className="text-primary">*</span></label>
+                  <input
+                    id="delivery-zip"
                     data-testid="zip-input"
                     type="text"
                     inputMode={market === "CA" ? "text" : "numeric"}
                     maxLength={market === "CA" ? 7 : 5}
+                    required
                     placeholder={market === "CA" ? "e.g. M5V 2T6" : "e.g. 90210"}
                     value={zipCode}
-                    onChange={e => setZipCode(market === "CA" ? e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, "").slice(0, 7) : e.target.value.replace(/\D/g, "").slice(0, 5))}
+                    onChange={e => {
+                      const value = market === "CA"
+                        ? e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, "").slice(0, 7)
+                        : e.target.value.replace(/\D/g, "").slice(0, 5);
+                      setZipCode(value);
+                      if (selectedCity.trim() && value.trim()) setDeliveryLocationError("");
+                    }}
                     className="w-full h-11 px-4 bg-card border border-border text-sm font-semibold focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground text-foreground"
+                    aria-invalid={Boolean(deliveryLocationError && !zipCode.trim())}
                   />
                 </div>
               </div>
+              {deliveryLocationError && (
+                <p role="alert" className="mb-4 text-sm text-destructive">{deliveryLocationError}</p>
+              )}
 
               {/* Delivery timeline card */}
               <div className={`border-2 p-4 flex items-center gap-4 transition-all ${
@@ -832,7 +874,8 @@ export default function Quote() {
         containerLabel={container.label}
         colorLabel={colorLabel || configurationLabel}
         totalPrice={estimate.total}
-        deliveryState={[selectedCity, selectedState].filter(Boolean).join(", ")}
+        deliveryCity={selectedCity}
+        deliveryState={selectedState}
         deliveryZip={zipCode}
         mode={mode}
       />

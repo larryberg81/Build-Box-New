@@ -4,7 +4,20 @@ import nodemailer from "nodemailer";
 const router = Router();
 
 router.post("/contact", async (req, res) => {
-  const { name, email, phone, interest, message, subject, ...rest } = req.body as Record<string, string>;
+  const body = req.body as Record<string, unknown>;
+  const { name, email, phone, interest, message, subject, ...rest } = body as Record<string, string>;
+
+  if (typeof body.container === "string" && body.container.trim()) {
+    const deliveryCity = typeof body.delivery_city === "string" ? body.delivery_city.trim() : "";
+    const deliveryZip = typeof body.delivery_zip === "string" ? body.delivery_zip.trim() : "";
+    if (!deliveryCity || !deliveryZip) {
+      res.status(400).json({
+        success: false,
+        error: "Delivery city and ZIP or postal code are required for quote requests.",
+      });
+      return;
+    }
+  }
 
   const smtpUser    = process.env.SMTP_USER;
   const smtpPass    = process.env.SMTP_PASS;

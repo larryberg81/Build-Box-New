@@ -2,3 +2,4 @@
 - [Container color photography](container-color-photography.md) — color variants should use distinct real-world viewpoints, not identical recolored compositions.
 - [Zoho email delivery](zoho-email-delivery.md) — website inquiry and quote mail uses Zoho SMTP, with end-to-end delivery confirmed.
 - [Canadian price localization](canadian-price-localization.md) — keep catalog calculations in USD and convert only display/submission values to CAD.
+- [Quote delivery location](quote-delivery-location.md) — quote requests require a delivery city and market-specific ZIP or postal code.
