@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Package, Truck, Zap, Wrench, ArrowRight } from "lucide-react";
+import { apiUrl } from "@/lib/api";
 
 function OrderSummary({ p }: { p: URLSearchParams }) {
   const mode      = p.get("mode") ?? "purchase";
@@ -131,7 +132,7 @@ export default function Contact() {
       return `${currency === "CAD" ? "CA$" : "$"}${amount.toLocaleString(currency === "CAD" ? "en-CA" : "en-US")} ${currency}`;
     };
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch(apiUrl("/api/contact"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -181,7 +182,7 @@ export default function Contact() {
     const form = e.currentTarget;
     const data = Object.fromEntries(new FormData(form));
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch(apiUrl("/api/contact"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

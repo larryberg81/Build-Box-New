@@ -3,6 +3,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { ArrowRight, Check, ChevronDown, ChevronUp, Truck, MapPin, MessageCircle, X, Send, Zap } from "lucide-react";
 import { CONTAINERS as CATALOG_CONTAINERS } from "@/data/containers";
 import { calculateQuoteEstimate, toQuoteContainer } from "@/lib/quote-pricing";
+import { apiUrl } from "@/lib/api";
 import { CANADIAN_LOCATIONS, CANADIAN_PROVINCES, useMarket } from "@/contexts/market";
 
 // ── Quote view of the shared container catalog ───────────────────────────────
@@ -149,7 +150,7 @@ function InquiryWidget({
         delivery_zip: deliveryZip || "Not specified",
         message: form.message || defaultMessage,
       };
-      const res = await fetch("/api/contact", {
+      const res = await fetch(apiUrl("/api/contact"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

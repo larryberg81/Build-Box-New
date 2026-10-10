@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { apiUrl } from "@/lib/api";
 
 export type Market = "US" | "CA";
 
@@ -63,7 +64,7 @@ export function MarketProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("builtbox-cad-rate");
       }
     }
-    fetch("/api/exchange-rate")
+    fetch(apiUrl("/api/exchange-rate"))
       .then(response => response.ok ? response.json() : Promise.reject())
       .then((data: { rate?: number }) => {
         if (!data.rate) return;

@@ -51,6 +51,7 @@ export default defineConfig({
   },
   define: {
     "import.meta.env.VITE_WEB3FORMS_KEY": JSON.stringify(process.env.VITE_WEB3FORMS_KEY ?? ""),
+    "import.meta.env.VITE_API_ORIGIN": JSON.stringify(process.env.VITE_API_ORIGIN ?? ""),
   },
   server: {
     port,
