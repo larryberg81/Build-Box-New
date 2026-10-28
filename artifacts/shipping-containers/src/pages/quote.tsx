@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link, useLocation, useSearch } from "wouter";
-import { ArrowRight, Check, ChevronDown, ChevronUp, Truck, MapPin, MessageCircle, X, Send, Zap } from "lucide-react";
+import { Link, useSearch } from "wouter";
+import { Check, ChevronDown, ChevronUp, Truck, MapPin, MessageCircle, X, Send, Zap } from "lucide-react";
 import { CONTAINERS as CATALOG_CONTAINERS } from "@/data/containers";
 import { calculateQuoteEstimate, toQuoteContainer } from "@/lib/quote-pricing";
 import { apiUrl } from "@/lib/api";
@@ -290,7 +290,6 @@ function InquiryWidget({
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function Quote() {
   const { market, currency, cadRate, formatMoney } = useMarket();
-  const [, navigate]                              = useLocation();
   const search                                     = useSearch();
   const searchParams                               = new URLSearchParams(search);
   const requestedContainerId                       = searchParams.get("containerId");
@@ -319,6 +318,9 @@ export default function Quote() {
   const [selectedCity, setSelectedCity]           = useState<string>("");
   const [zipCode, setZipCode]                     = useState<string>("");
   const [deliveryLocationError, setDeliveryLocationError] = useState("");
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteSubmitted, setQuoteSubmitted] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
   const [sizeFilter, setSizeFilter]               = useState<string>("All");
 
   useEffect(() => {
@@ -328,39 +330,72 @@ export default function Quote() {
     setDeliveryLocationError("");
   }, [market]);
 
-  const goToFormalQuote = () => {
+  const handleFormalQuoteSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!selectedCity.trim() || !zipCode.trim()) {
       setDeliveryLocationError("Enter a delivery city and ZIP or postal code to continue.");
       return;
     }
     setDeliveryLocationError("");
-    const gensetObj = GENSET_ADDONS.find(g => g.id === selectedGenset)!;
-    const modLabels = MODIFICATIONS.filter(m => selectedMods.has(m.id)).map(m => m.label);
-    const durationObj = RENTAL_DURATIONS.find(d => d.id === selectedDuration)!;
-    const selectedColorLabel = colorOptions.find(color => color.id === selectedColor)?.label ?? "";
-    const selectedConfigurationLabel = configurationOptions.find(configuration => configuration.id === selectedConfiguration)?.label ?? "";
-    const params = new URLSearchParams({
-      container: container.label,
-      containerId: container.id,
-      color: selectedColorLabel,
-      configuration: selectedConfigurationLabel,
-      mode,
-      total:    String(estimate.total),
-      base:     String(estimate.base),
-      delivery: String(estimate.delivery),
-      genset:   gensetObj.id !== "gs-none" ? gensetObj.label : "",
-      mods:     modLabels.join(" | "),
-      state:    selectedState,
-      city:     selectedCity,
-      zip:      zipCode,
-      country:  market === "CA" ? "Canada" : "United States",
-      currency,
-      rate:     String(cadRate),
-      ...(mode === "rental" && estimate.monthly !== null
-        ? { monthly: String(estimate.monthly), duration: durationObj.label }
-        : {}),
-    });
-    navigate(`/contact?${params.toString()}`);
+    setQuoteError("");
+    setQuoteLoading(true);
+
+    const values = Object.fromEntries(new FormData(event.currentTarget));
+    const field = (name: string) => String(values[name] ?? "").trim();
+    const genset = GENSET_ADDONS.find(option => option.id === selectedGenset)!;
+    const duration = RENTAL_DURATIONS.find(option => option.id === selectedDuration)!;
+    const modifications = MODIFICATIONS
+      .filter(modification => selectedMods.has(modification.id))
+      .map(modification => modification.label);
+    const emailMoney = (value: number) => {
+      const amount = Math.round(value * (currency === "CAD" ? cadRate : 1));
+      return `${currency === "CAD" ? "CA$" : "$"}${amount.toLocaleString(currency === "CAD" ? "en-CA" : "en-US")} ${currency}`;
+    };
+
+    try {
+      const response = await fetch(apiUrl("/api/contact"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: `Built Box Containers — Formal Quote Request: ${container.label}`,
+          name: field("name"),
+          email: field("email"),
+          phone: field("phone") || "Not provided",
+          address: field("address") || "Not provided",
+          container: container.label,
+          color: colorLabel || "Not specified",
+          configuration: configurationLabel || "Not specified",
+          mode,
+          mods: modifications.length ? modifications.join(", ") : "None",
+          genset: genset.id !== "gs-none" ? genset.label : "None",
+          total: emailMoney(estimate.total),
+          base_price: emailMoney(estimate.base),
+          delivery_fee: emailMoney(estimate.delivery),
+          ...(estimate.monthly !== null
+            ? {
+                monthly: `${emailMoney(estimate.monthly)}/mo`,
+                duration: duration.label,
+              }
+            : {}),
+          delivery_state: selectedState || "Not specified",
+          delivery_city: selectedCity.trim(),
+          delivery_zip: zipCode.trim(),
+          country: market === "CA" ? "Canada" : "United States",
+          currency,
+          notes: field("notes") || "None",
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        setQuoteError(result.error ?? "Please try again or email us directly.");
+        return;
+      }
+      setQuoteSubmitted(true);
+    } catch {
+      setQuoteError("Network error — please email info@builtboxcontainer.com.");
+    } finally {
+      setQuoteLoading(false);
+    }
   };
 
   const SIZE_GROUPS = ["All", "10 ft", "20 ft", "30 ft", "40 ft"];
@@ -643,106 +678,9 @@ export default function Quote() {
               </p>
             </div>
 
-            {/* Step 5: Delivery Location */}
-            <div>
-              <SectionHeader step={5} title="Delivery Location" subtitle="We'll estimate your delivery timeline from the nearest depot." />
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{market === "CA" ? "Province / Territory" : "State"}</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <select
-                      data-testid="state-select"
-                      value={selectedState}
-                      onChange={e => setSelectedState(e.target.value)}
-                      className="w-full h-11 pl-9 pr-4 bg-card border border-border text-sm font-semibold appearance-none focus:outline-none focus:border-primary transition-colors text-foreground"
-                    >
-                      <option value="">Select {market === "CA" ? "province" : "state"}…</option>
-                      {(market === "CA" ? CANADIAN_PROVINCES : US_STATES).map(([code, name]) => (
-                        <option key={code} value={code}>{name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="delivery-city" className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Delivery City <span className="text-primary">*</span></label>
-                  <input
-                    id="delivery-city"
-                    data-testid="city-input"
-                    type="text"
-                    autoComplete="address-level2"
-                    required
-                    value={selectedCity}
-                    onChange={e => {
-                      setSelectedCity(e.target.value);
-                      if (e.target.value.trim() && zipCode.trim()) setDeliveryLocationError("");
-                    }}
-                    className="w-full h-11 px-3 bg-card border border-border text-sm font-semibold focus:outline-none focus:border-primary text-foreground"
-                    placeholder="Enter your city"
-                    aria-invalid={Boolean(deliveryLocationError && !selectedCity.trim())}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="delivery-zip" className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">{market === "CA" ? "Postal Code" : "ZIP Code"} <span className="text-primary">*</span></label>
-                  <input
-                    id="delivery-zip"
-                    data-testid="zip-input"
-                    type="text"
-                    inputMode={market === "CA" ? "text" : "numeric"}
-                    maxLength={market === "CA" ? 7 : 5}
-                    required
-                    placeholder={market === "CA" ? "e.g. M5V 2T6" : "e.g. 90210"}
-                    value={zipCode}
-                    onChange={e => {
-                      const value = market === "CA"
-                        ? e.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, "").slice(0, 7)
-                        : e.target.value.replace(/\D/g, "").slice(0, 5);
-                      setZipCode(value);
-                      if (selectedCity.trim() && value.trim()) setDeliveryLocationError("");
-                    }}
-                    className="w-full h-11 px-4 bg-card border border-border text-sm font-semibold focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground text-foreground"
-                    aria-invalid={Boolean(deliveryLocationError && !zipCode.trim())}
-                  />
-                </div>
-              </div>
-              {deliveryLocationError && (
-                <p role="alert" className="mb-4 text-sm text-destructive">{deliveryLocationError}</p>
-              )}
-
-              {/* Delivery timeline card */}
-              <div className={`border-2 p-4 flex items-center gap-4 transition-all ${
-                selectedState ? "border-border bg-card" : "border-dashed border-border bg-transparent"
-              }`}>
-                <Truck className={`h-6 w-6 flex-shrink-0 ${selectedState ? delivery.color : "text-muted-foreground"}`} />
-                <div>
-                  <p className={`font-bold text-sm uppercase tracking-wide ${selectedState ? delivery.color : "text-muted-foreground"}`}>
-                    {selectedState ? delivery.days : market === "CA" ? "7 – 14 business days" : "3 – 5 business days"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {selectedState ? delivery.label : `Select a ${market === "CA" ? "province" : "state"} to see your estimated delivery window`}
-                  </p>
-                </div>
-                {market === "US" && selectedState && DEPOT_STATES.has(selectedState) && (
-                  <span className="ml-auto text-[10px] font-bold uppercase tracking-wider bg-emerald-900/50 text-emerald-300 px-2 py-1 flex-shrink-0">
-                    Depot State
-                  </span>
-                )}
-              </div>
-
-              {/* Delivery fee callout */}
-              <div className="mt-3 flex items-center gap-3 px-4 py-3 bg-primary/5 border border-primary/20">
-                <Truck className="h-4 w-4 text-primary flex-shrink-0" />
-                <p className="text-sm">
-                  <span className="font-bold text-foreground">Delivery fee included: </span>
-                  <span className="text-primary font-bold">{formatMoney(deliveryFee)} {currency}</span>
-                  <span className="text-muted-foreground text-xs ml-2">(flat rate, one-time)</span>
-                </p>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">Minimum lead time is 3 business days. Remote locations may require additional scheduling.</p>
-            </div>
           </div>
 
-          {/* ── Right: Sticky Price Panel ─────────────────────────────────── */}
+          {/* ── Right: Sticky Quote Request Panel ────────────────────────── */}
           <div className="lg:sticky lg:top-24">
             <div className="border-2 border-border bg-card overflow-hidden">
               <div className="bg-primary px-6 py-4">
@@ -750,7 +688,6 @@ export default function Quote() {
               </div>
 
               <div className="p-6">
-                {/* Selected container summary */}
                 <div className="mb-5 pb-5 border-b border-border">
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">Selected</p>
                   <p className="font-display font-bold uppercase text-sm leading-tight">{container.label}</p>
@@ -766,7 +703,6 @@ export default function Quote() {
                   </div>
                 </div>
 
-                {/* Total */}
                 <div className="mb-2">
                   <p className="text-5xl font-display font-bold text-foreground">{formatMoney(estimate.total)}</p>
                   {estimate.monthly !== null && (
@@ -775,8 +711,8 @@ export default function Quote() {
                 </div>
                 <p className="text-xs text-primary font-semibold mb-6">Includes {formatMoney(estimate.delivery)} delivery fee · {currency}</p>
 
-                {/* Breakdown toggle */}
                 <button
+                  type="button"
                   data-testid="toggle-breakdown"
                   onClick={() => setShowBreakdown(v => !v)}
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4 font-semibold uppercase tracking-wider"
@@ -792,7 +728,7 @@ export default function Quote() {
                       <span className="font-bold">{formatMoney(estimate.base)}</span>
                     </div>
                     {[...selectedMods].map(id => {
-                      const mod = MODIFICATIONS.find(m => m.id === id)!;
+                      const mod = MODIFICATIONS.find(item => item.id === id)!;
                       const displayPrice = mode === "rental" ? Math.round(mod.price * 0.08) : mod.price;
                       return (
                         <div key={id} className="flex justify-between px-4 py-2.5">
@@ -828,41 +764,218 @@ export default function Quote() {
                   </div>
                 )}
 
-                {/* Delivery summary */}
-                {selectedState && (
-                  <div className="mb-5 p-3 border border-border bg-background/50 flex items-center gap-3">
-                    <Truck className={`h-4 w-4 flex-shrink-0 ${delivery.color}`} />
-                    <div>
-                      <p className={`text-xs font-bold uppercase tracking-wider ${delivery.color}`}>{delivery.days}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5">{[selectedCity, selectedState, zipCode].filter(Boolean).join(", ")}</p>
+                {quoteSubmitted ? (
+                  <div role="status" className="mt-6 border-t border-border pt-6 text-center">
+                    <div className="w-12 h-12 bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                      <Check className="h-6 w-6 text-primary" />
                     </div>
+                    <h2 className="font-display font-bold uppercase text-lg mb-2">Quote Request Sent</h2>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      A specialist will reach out within 24 hours with your formal quote.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuoteSubmitted(false);
+                        setQuoteError("");
+                      }}
+                      className="w-full h-10 border border-border text-sm font-bold uppercase tracking-wider hover:bg-background transition-colors"
+                    >
+                      Send Another Request
+                    </button>
                   </div>
-                )}
+                ) : (
+                  <form data-testid="formal-quote-form" onSubmit={handleFormalQuoteSubmit} className="space-y-4">
+                    <div className="border-t border-border pt-5 space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Your Details</p>
 
-                <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
-                  Estimates are indicative. Final pricing depends on site-specific requirements.
-                </p>
+                      <div className="space-y-1.5">
+                        <label htmlFor="quote-name" className="block text-sm font-semibold">Full Name *</label>
+                        <input
+                          id="quote-name"
+                          name="name"
+                          required
+                          maxLength={200}
+                          autoComplete="name"
+                          placeholder="Jane Smith"
+                          className="w-full h-10 px-3 bg-background border border-border text-sm focus:outline-none focus:border-primary"
+                        />
+                      </div>
 
-                <button
-                  data-testid="cta-get-formal-quote"
-                  onClick={goToFormalQuote}
-                  className="flex w-full h-12 items-center justify-center gap-2 bg-primary text-primary-foreground font-bold uppercase tracking-wider hover:bg-primary/90 transition-all text-sm"
-                >
-                  Get a Formal Quote <ArrowRight className="h-4 w-4" />
-                </button>
+                      <div className="space-y-1.5">
+                        <label htmlFor="quote-email" className="block text-sm font-semibold">Email Address *</label>
+                        <input
+                          id="quote-email"
+                          name="email"
+                          type="email"
+                          required
+                          maxLength={254}
+                          autoComplete="email"
+                          placeholder="jane@company.com"
+                          className="w-full h-10 px-3 bg-background border border-border text-sm focus:outline-none focus:border-primary"
+                        />
+                      </div>
 
-                <div className="mt-4 pt-4 border-t border-border space-y-1.5">
-                  {[
-                    "No commitment required",
-                    "Response within 24 hours",
-                    "Min. delivery 3 business days",
-                    "Nationwide delivery available",
-                  ].map(t => (
-                    <div key={t} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Check className="h-3 w-3 text-primary flex-shrink-0" /> {t}
+                      <div className="space-y-1.5">
+                        <label htmlFor="quote-phone" className="block text-sm font-semibold">Phone Number</label>
+                        <input
+                          id="quote-phone"
+                          name="phone"
+                          type="tel"
+                          maxLength={50}
+                          autoComplete="tel"
+                          placeholder="+1 (555) 000-0000"
+                          className="w-full h-10 px-3 bg-background border border-border text-sm focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="quote-address" className="block text-sm font-semibold">Delivery Address</label>
+                        <input
+                          id="quote-address"
+                          name="address"
+                          autoComplete="street-address"
+                          maxLength={500}
+                          placeholder={market === "CA" ? "123 Main St, City, Province" : "123 Main St, City, State"}
+                          className="w-full h-10 px-3 bg-background border border-border text-sm focus:outline-none focus:border-primary"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Full address helps us prepare an accurate delivery quote.</p>
+                      </div>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="border-t border-border pt-5 space-y-3">
+                      <div>
+                        <span className="inline-block bg-primary text-primary-foreground text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 mb-2">
+                          Step 5
+                        </span>
+                        <h2 className="font-display font-bold uppercase tracking-tight">Delivery Location</h2>
+                        <p className="text-xs text-muted-foreground mt-1">We'll estimate your delivery timeline from the nearest depot.</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="delivery-state" className="block text-sm font-semibold">{market === "CA" ? "Province / Territory" : "State"}</label>
+                        <div className="relative">
+                          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                          <select
+                            id="delivery-state"
+                            name="deliveryState"
+                            data-testid="state-select"
+                            value={selectedState}
+                            onChange={event => setSelectedState(event.target.value)}
+                            className="w-full h-10 pl-9 pr-3 bg-background border border-border text-sm font-semibold appearance-none focus:outline-none focus:border-primary text-foreground"
+                          >
+                            <option value="">Select {market === "CA" ? "province" : "state"}…</option>
+                            {(market === "CA" ? CANADIAN_PROVINCES : US_STATES).map(([code, name]) => (
+                              <option key={code} value={code}>{name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="delivery-city" className="block text-sm font-semibold">Delivery City *</label>
+                        <input
+                          id="delivery-city"
+                          name="deliveryCity"
+                          data-testid="city-input"
+                          type="text"
+                          autoComplete="address-level2"
+                          required
+                          value={selectedCity}
+                          onChange={event => {
+                            setSelectedCity(event.target.value);
+                            if (event.target.value.trim() && zipCode.trim()) setDeliveryLocationError("");
+                          }}
+                          placeholder="Enter your city"
+                          aria-invalid={Boolean(deliveryLocationError && !selectedCity.trim())}
+                          className="w-full h-10 px-3 bg-background border border-border text-sm focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label htmlFor="delivery-zip" className="block text-sm font-semibold">
+                          {market === "CA" ? "Postal Code" : "ZIP Code"} *
+                        </label>
+                        <input
+                          id="delivery-zip"
+                          name="deliveryZip"
+                          data-testid="zip-input"
+                          type="text"
+                          inputMode={market === "CA" ? "text" : "numeric"}
+                          maxLength={market === "CA" ? 7 : 5}
+                          autoComplete="postal-code"
+                          required
+                          placeholder={market === "CA" ? "e.g. M5V 2T6" : "e.g. 90210"}
+                          value={zipCode}
+                          onChange={event => {
+                            const value = market === "CA"
+                              ? event.target.value.toUpperCase().replace(/[^A-Z0-9 ]/g, "").slice(0, 7)
+                              : event.target.value.replace(/\D/g, "").slice(0, 5);
+                            setZipCode(value);
+                            if (selectedCity.trim() && value.trim()) setDeliveryLocationError("");
+                          }}
+                          aria-invalid={Boolean(deliveryLocationError && !zipCode.trim())}
+                          className="w-full h-10 px-3 bg-background border border-border text-sm focus:outline-none focus:border-primary"
+                        />
+                      </div>
+
+                      {deliveryLocationError && (
+                        <p role="alert" className="text-xs text-destructive">{deliveryLocationError}</p>
+                      )}
+
+                      <div className={`border border-border p-3 flex items-start gap-3 ${
+                        selectedState ? "bg-background" : "bg-background/60"
+                      }`}>
+                        <Truck className={`h-4 w-4 flex-shrink-0 mt-0.5 ${selectedState ? delivery.color : "text-muted-foreground"}`} />
+                        <div className="min-w-0">
+                          <p className={`text-xs font-bold uppercase tracking-wide ${selectedState ? delivery.color : "text-muted-foreground"}`}>
+                            {selectedState ? delivery.days : market === "CA" ? "7 – 14 business days" : "3 – 5 business days"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {selectedState ? delivery.label : `Select a ${market === "CA" ? "province" : "state"} to see your estimated delivery window`}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-2">
+                            Delivery fee included: <span className="font-bold text-primary">{formatMoney(deliveryFee)} {currency}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">Minimum lead time is 3 business days. Remote locations may require additional scheduling.</p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="quote-notes" className="block text-sm font-semibold">
+                        Additional Notes <span className="text-muted-foreground font-normal">(optional)</span>
+                      </label>
+                      <textarea
+                        id="quote-notes"
+                        name="notes"
+                        rows={3}
+                        maxLength={500}
+                        placeholder="Site access notes, preferred delivery window, questions..."
+                        className="w-full px-3 py-2 bg-background border border-border text-sm focus:outline-none focus:border-primary resize-y"
+                      />
+                    </div>
+
+                    {quoteError && <p role="alert" className="text-sm text-destructive">{quoteError}</p>}
+
+                    <button
+                      type="submit"
+                      data-testid="cta-get-formal-quote"
+                      disabled={quoteLoading}
+                      className="flex w-full h-12 items-center justify-center gap-2 bg-primary text-primary-foreground font-bold uppercase tracking-wider hover:bg-primary/90 transition-all text-sm disabled:opacity-60"
+                    >
+                      {quoteLoading ? "Sending…" : <>Send My Quote Request <Send className="h-4 w-4" /></>}
+                    </button>
+
+                    <div className="pt-3 border-t border-border space-y-1.5">
+                      {["No commitment required", "Response within 24 hours", "Nationwide delivery available"].map(text => (
+                        <div key={text} className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Check className="h-3 w-3 text-primary flex-shrink-0" /> {text}
+                        </div>
+                      ))}
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
           </div>
