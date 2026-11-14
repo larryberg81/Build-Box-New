@@ -8,6 +8,8 @@
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "test": "tsx --test src/**/*.test.ts",
+    "test:published-site": "node --test scripts/check-published-site.test.mjs",
+    "check:published-site": "node scripts/check-published-site.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
