@@ -14,3 +14,9 @@ The Vercel function's TypeScript check must also pass with NodeNext module resol
 **Why:** Once the API was included, Vercel rejected imports that passed the original bundler-only typecheck. A frontend build and a Replit API bundle do not exercise that compiler mode.
 
 **How to apply:** Maintain ESM-compatible relative imports and logger exports throughout the API's dependency tree. Preserve this compatibility when regenerating API schemas, and run the Vercel-specific API typecheck before deploying.
+
+Treat the local NodeNext check as a useful guard, not an exact reproduction of Vercel's function compiler.
+
+**Why:** A deployment passed that check and the frontend build, then failed in Vercel's subsequent function compilation on an Express router type.
+
+**How to apply:** Inspect the end of the actual Vercel build log, including function compilation, before claiming a deployment build succeeds.
