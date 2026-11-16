@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run typecheck:vercel-api && cd artifacts/shipping-containers && npm run build",
-  "outputDirectory": "artifacts/shipping-containers/dist"
+  "buildCommand": "pnpm run typecheck:vercel-api && pnpm --filter @workspace/api-server run build && pnpm run validate:vercel-api && cd artifacts/shipping-containers && npm run build",
+  "outputDirectory": "artifacts/shipping-containers/dist",
+  "functions": {
+    "api/**/*.mjs": {
+      "includeFiles": "artifacts/api-server/dist/**"
+    }
+  }
 }

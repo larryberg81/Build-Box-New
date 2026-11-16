@@ -15,8 +15,8 @@ The Vercel function's TypeScript check must also pass with NodeNext module resol
 
 **How to apply:** Maintain ESM-compatible relative imports and logger exports throughout the API's dependency tree. Preserve this compatibility when regenerating API schemas, and run the Vercel-specific API typecheck before deploying.
 
-Treat the local NodeNext check as a useful guard, not an exact reproduction of Vercel's function compiler.
+Deploy a precompiled JavaScript Express application to Vercel, while retaining strict TypeScript checks on the original source.
 
-**Why:** A deployment passed that check and the frontend build, then failed in Vercel's subsequent function compilation on an Express router type.
+**Why:** Repeated deployments passed the local NodeNext check and frontend build, but failed in Vercel's additional function compiler on successive Express type-inference errors. Compiling the application with the existing API bundler avoids that inconsistent second TypeScript compilation without disabling source typechecking.
 
-**How to apply:** Inspect the end of the actual Vercel build log, including function compilation, before claiming a deployment build succeeds.
+**How to apply:** Keep Vercel's adapter JavaScript-only and point it at the compiled application, not the listener-based server entry. Build the API before Vercel packages the function, include its logger worker files, and validate the actual adapter in production mode without PORT. Inspect the end of the real Vercel build log and check the live API before claiming deployment or email success.
