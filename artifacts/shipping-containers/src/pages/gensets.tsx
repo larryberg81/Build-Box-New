@@ -356,7 +356,7 @@ export default function Gensets() {
             alt="Underslung genset installed under container trailer"
             className="w-full h-full object-cover object-center"
           />
-          <div className="absolute inset-0 bg-background/80" />
+          <div className="absolute inset-0 bg-background/85" />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/75 to-transparent" />
         </div>
         <div className="relative container mx-auto px-4 md:px-8 max-w-7xl py-20 md:py-28">
@@ -370,7 +370,7 @@ export default function Gensets() {
             </p>
             <div className="flex flex-wrap gap-2">
               {BRANDS.slice(1).map(b => (
-                <span key={b} className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 border border-white/10 ${BRAND_COLORS[b]}`}>
+                <span key={b} className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 border border-border ${BRAND_COLORS[b]}`}>
                   {b}
                 </span>
               ))}
@@ -635,7 +635,7 @@ export default function Gensets() {
       {/* ── Detail modal ──────────────────────────────────────────── */}
       {selected && (
         <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setSelected(null)}
         >
           <div

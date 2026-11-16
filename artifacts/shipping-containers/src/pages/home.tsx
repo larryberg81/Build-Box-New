@@ -26,11 +26,11 @@ export default function Home() {
             alt="Built Box Containers" 
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-background/80" />
+          <div className="absolute inset-0 bg-background/85" />
         </div>
         
         <div className="container relative z-10 mx-auto px-4 md:px-8 text-center max-w-4xl mt-16">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold tracking-tighter text-white uppercase mb-6 leading-none">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold tracking-tighter text-foreground uppercase mb-6 leading-none">
             Shipping Containers<br />
             Built to <span className="text-primary">Last.</span><br />
             Built for <span className="text-primary">You.</span>
