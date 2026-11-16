@@ -20,3 +20,9 @@ Deploy a precompiled JavaScript Express application to Vercel, while retaining s
 **Why:** Repeated deployments passed the local NodeNext check and frontend build, but failed in Vercel's additional function compiler on successive Express type-inference errors. Compiling the application with the existing API bundler avoids that inconsistent second TypeScript compilation without disabling source typechecking.
 
 **How to apply:** Keep Vercel's adapter JavaScript-only and point it at the compiled application, not the listener-based server entry. Build the API before Vercel packages the function, include its logger worker files, and validate the actual adapter in production mode without PORT. Inspect the end of the real Vercel build log and check the live API before claiming deployment or email success.
+
+When using Vercel's own API, remove an external `VITE_API_ORIGIN` override and redeploy the frontend.
+
+**Why:** The Production dashboard was found still pointing forms at a Replit backend after Vercel's API was restored. Mail settings in Vercel cannot fix requests sent to that different backend.
+
+**How to apply:** Use same-origin API requests for the combined Vercel deployment. Configure SMTP credentials as server-only Production variables, without a `VITE_` prefix. Do not assume the dashboard override has been removed until the user confirms it.
