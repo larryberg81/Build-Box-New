@@ -189,15 +189,15 @@ function InquiryWidget({
       <button
         data-testid="inquiry-widget-toggle"
         onClick={() => { setOpen(v => !v); setSubmitted(false); }}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-primary text-primary-foreground font-bold uppercase tracking-wider text-sm h-12 px-5 shadow-2xl hover:bg-primary/90 transition-all"
+        className="fixed bottom-6 left-4 md:left-6 z-50 flex items-center gap-2 bg-primary text-primary-foreground font-bold uppercase tracking-wider text-sm h-12 px-5 shadow-2xl hover:bg-primary/90 transition-all"
       >
         {open ? <X className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
-        {open ? "Close" : "Talk to Us"}
+        {open ? "Close" : "Quick Inquiry"}
       </button>
 
       {/* Drawer */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 w-80 bg-card border border-border shadow-2xl overflow-hidden">
+        <div className="fixed bottom-20 left-4 md:left-6 z-50 w-80 max-w-[calc(100vw-2rem)] bg-card border border-border shadow-2xl overflow-hidden">
           <div className="bg-primary px-5 py-4">
             <p className="text-primary-foreground font-display font-bold uppercase tracking-tight text-base">Quick Inquiry</p>
             <p className="text-primary-foreground/70 text-xs mt-0.5">We respond within 24 hours</p>
