@@ -47,13 +47,19 @@ function isTypingFocused(): boolean {
 export function SalesNotification() {
   const { market } = useMarket();
   const [location] = useLocation();
+  // Explicit, development-only samples: never enter the database or a production feed.
+  const previewType = import.meta.env.DEV
+    ? new URLSearchParams(window.location.search).get("salesPreview")
+    : null;
+  const isPreview = previewType === "container" || previewType === "genset";
+  const [previewClosed, setPreviewClosed] = useState(false);
   const blocked = isSalesPopupBlockedPath(location);
   const [dismissed, setDismissed] = useState(() => readSession().dismissed);
 
   const { data, isError, isLoading } = useGetSalesNotifications({ country: market }, {
     query: {
       queryKey: getGetSalesNotificationsQueryKey({ country: market }),
-      enabled: !dismissed,
+      enabled: !dismissed && !isPreview,
       refetchInterval: 2 * 60 * 1000,
       refetchOnWindowFocus: true,
       retry: 1,
@@ -81,6 +87,7 @@ export function SalesNotification() {
   }, [market]);
 
   useEffect(() => {
+    if (isPreview) return;
     if (blocked || dismissed) { setCurrent(null); return; }
     if (current) {
       const t = window.setTimeout(() => { setCurrent(null); setDelay(GAP_MS); }, SHOW_MS);
@@ -102,16 +109,32 @@ export function SalesNotification() {
     };
     t = window.setTimeout(attempt, delay);
     return () => window.clearTimeout(t);
-  }, [blocked, dismissed, current, eligibleKey, delay, market]);
+  }, [blocked, dismissed, current, eligibleKey, delay, market, isPreview]);
 
-  if (!current || blocked || dismissed || !isEligibleSale(current, market, Date.now())
-    || !eligible.some(sale => sale.id === current.id)) return null;
+  const sale: SaleNotification | null = isPreview ? {
+    id: 0,
+    country: market,
+    productType: previewType === "genset" ? "genset" : "container",
+    productName: previewType === "genset" ? "Carrier Undermount Genset" : "20ft Modified Container",
+    city: market === "CA" ? "Toronto" : "Houston",
+    imagePath: previewType === "genset" ? "/images/genset-carrier.png" : "/images/product-20ft.png",
+    purchasedAt: "2026-11-17T12:00:00Z",
+  } : current;
 
-  const isGenset = current.productType === "genset";
-  const img = imgFailed ? null : resolvePublicImage(current.imagePath, import.meta.env.BASE_URL ?? "/");
+  if (!sale || blocked || (isPreview ? previewClosed : (
+    dismissed || !isEligibleSale(sale, market, Date.now())
+    || !eligible.some(candidate => candidate.id === sale.id)
+  ))) return null;
+
+  const isGenset = sale.productType === "genset";
+  const img = imgFailed ? null : resolvePublicImage(sale.imagePath, import.meta.env.BASE_URL ?? "/");
   const Icon = isGenset ? Zap : Box;
 
   const close = () => {
+    if (isPreview) {
+      setPreviewClosed(true);
+      return;
+    }
     writeSession({ ...readSession(), dismissed: true });
     setDismissed(true);
     setCurrent(null);
@@ -119,7 +142,7 @@ export function SalesNotification() {
 
   return (
     <aside
-      aria-label="Recent purchase"
+      aria-label={isPreview ? "Demo notification, not a real sale" : "Recent purchase"}
       data-testid="popup-sales-notification"
       className="fixed z-40 left-3 sm:left-5 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] w-[min(20rem,calc(100vw-6rem))] animate-in fade-in slide-in-from-bottom-2 duration-300 motion-reduce:animate-none"
     >
@@ -132,13 +155,15 @@ export function SalesNotification() {
           )}
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">Recent purchase</p>
-          <p className="text-sm font-semibold leading-snug truncate" data-testid="text-sale-product">{current.productName}</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">{isPreview ? "Demo — not a real sale" : "Recent purchase"}</p>
+          <p className="text-sm font-semibold leading-snug truncate" data-testid="text-sale-product">{sale.productName}</p>
           <p className="text-xs text-muted-foreground truncate" data-testid="text-sale-location">
-            {current.city} / {current.country === "CA" ? "Canada" : "United States"}
+            {sale.city} / {sale.country === "CA" ? "Canada" : "United States"}
           </p>
           <div className="mt-1 flex items-center gap-2 text-xs">
-            <time dateTime={current.purchasedAt} className="text-muted-foreground">{formatPurchaseDate(current.purchasedAt, market)}</time>
+            {isPreview
+              ? <span className="text-muted-foreground">Sample only</span>
+              : <time dateTime={sale.purchasedAt} className="text-muted-foreground">{formatPurchaseDate(sale.purchasedAt, market)}</time>}
             <span aria-hidden="true" className="text-border">|</span>
             <Link
               href={isGenset ? "/gensets" : "/containers"}
