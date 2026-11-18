@@ -11,6 +11,31 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /sales-notifications:
+    get:
+      operationId: getSalesNotifications
+      tags: [sales]
+      summary: Approved completed sales for the selected country
+      parameters:
+        - in: query
+          name: country
+          required: true
+          schema:
+            type: string
+            enum: [US, CA]
+      responses:
+        "200":
+          description: Up to 20 approved purchases in the last 30 days; may be empty
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SaleNotification"
+        "400":
+          description: Country must be US or CA
+        "503":
+          description: Sales database is not available
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +51,27 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    SaleNotification:
+      type: object
+      required: [id, country, productType, productName, city, purchasedAt, imagePath]
+      properties:
+        id:
+          type: integer
+        country:
+          type: string
+          enum: [US, CA]
+        productType:
+          type: string
+          enum: [container, genset]
+        productName:
+          type: string
+        city:
+          type: string
+        purchasedAt:
+          type: string
+          format: date-time
+        imagePath:
+          type: [string, "null"]
     HealthStatus:
       type: object
       properties:

@@ -4,3 +4,4 @@
 - [Canadian price localization](canadian-price-localization.md) — keep catalog calculations in USD and convert only display/submission values to CAD.
 - [Quote delivery location](quote-delivery-location.md) — quote requests require a delivery city and market-specific ZIP or postal code.
 - [Vercel deployment root](vercel-deployment-root.md) — use the repository root in Vercel so a successful static frontend deployment does not exclude the email API.
+- [Verified sales notifications](verified-sales-notifications.md) — start empty; show only genuine completed purchases, never quotes or invented customer activity.

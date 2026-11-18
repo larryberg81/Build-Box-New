@@ -15,6 +15,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Seo } from "@/components/seo";
 import { MarketProvider } from "@/contexts/market";
+import { SalesNotification } from "@/components/sales-notification";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL?.replace(/\/$/, "") || ""}>
             <Seo />
             <Router />
+            <SalesNotification />
           </WouterRouter>
           <Toaster />
         </TooltipProvider>

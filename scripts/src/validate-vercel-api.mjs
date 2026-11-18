@@ -60,4 +60,10 @@ const missingDelivery = await invoke("POST", "/api/contact", {
 });
 assert.equal(missingDelivery.status, 400);
 assert.match(missingDelivery.body.error, /Delivery city and ZIP or postal code/);
-console.log("Vercel API entry verified: health and contact validation passed; no email sent.");
+const badCountry = await invoke("GET", "/api/sales-notifications?country=GB");
+assert.equal(badCountry.status, 400);
+if (!process.env.DATABASE_URL) {
+  const noDatabase = await invoke("GET", "/api/sales-notifications?country=US");
+  assert.equal(noDatabase.status, 503);
+}
+console.log("Vercel API entry verified: health, contact validation and sales isolation passed; no email sent.");
