@@ -1,6 +1,22 @@
 import type { SaleNotification } from "@workspace/api-client-react";
 
 const MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+export const SALES_LOOP_INTERVAL_MS = 30_000;
+export const SALES_DISPLAY_MS = 7_000;
+const FIRST_DELAY_MS = 8_000;
+
+export function getSalesNotificationDelay(lastShownAt: number | null, now: number): number {
+  return lastShownAt === null ? FIRST_DELAY_MS : Math.max(0, lastShownAt + SALES_LOOP_INTERVAL_MS - now);
+}
+
+export function getNextSale(
+  sales: SaleNotification[], market: "US" | "CA", lastId: number | undefined, now: number,
+): SaleNotification | null {
+  const eligible = sales.filter(sale => isEligibleSale(sale, market, now));
+  if (!eligible.length) return null;
+  const index = eligible.findIndex(sale => sale.id === lastId);
+  return eligible[(index + 1) % eligible.length];
+}
 
 export function isEligibleSale(sale: SaleNotification, market: "US" | "CA", now: number): boolean {
   if (!sale || sale.country !== market || !Number.isInteger(sale.id) || sale.id < 1) return false;

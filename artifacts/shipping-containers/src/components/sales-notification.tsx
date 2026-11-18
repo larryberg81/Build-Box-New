@@ -7,24 +7,19 @@ import {
   type SaleNotification,
 } from "@workspace/api-client-react";
 import { useMarket } from "@/contexts/market";
-import { isEligibleSale, isSalesPopupBlockedPath, resolvePublicImage, formatPurchaseDate } from "@/lib/sales-notifications";
+import { isEligibleSale, isSalesPopupBlockedPath, resolvePublicImage, formatPurchaseDate, getNextSale, getSalesNotificationDelay, SALES_DISPLAY_MS } from "@/lib/sales-notifications";
 
-const FIRST_DELAY_MS = 8_000;
-const SHOW_MS = 7_000;
-const GAP_MS = 30_000;
 const RETRY_MS = 5_000;
-const MAX_IMPRESSIONS = 3;
 const STORAGE_KEY = "builtbox-sales-popup";
 
-type SessionState = { shown: number[]; dismissed: boolean };
+type SessionState = { dismissed: boolean };
 
 function readSession(): SessionState {
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return { shown: [], dismissed: false };
+    if (!raw) return { dismissed: false };
     const p = JSON.parse(raw) as Partial<SessionState>;
     return {
-      shown: Array.isArray(p.shown) ? p.shown.filter(n => typeof n === "number") : [],
       dismissed: p.dismissed === true,
     };
   } catch {
@@ -32,7 +27,7 @@ function readSession(): SessionState {
   }
 }
 
-let memorySession: SessionState = { shown: [], dismissed: false };
+let memorySession: SessionState = { dismissed: false };
 function writeSession(s: SessionState) {
   memorySession = s;
   try { window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch { /* storage blocked */ }
@@ -77,39 +72,43 @@ export function SalesNotification() {
   const eligibleKey = eligible.map(s => s.id).join(",");
 
   const [current, setCurrent] = useState<SaleNotification | null>(null);
-  const [delay, setDelay] = useState(FIRST_DELAY_MS);
+  const lastShownAt = useRef<number | null>(null);
+  const lastSaleIds = useRef<Partial<Record<"US" | "CA", number>>>({});
   const [imgFailed, setImgFailed] = useState(false);
 
   // Reset on market change.
   useEffect(() => {
     setCurrent(null);
-    setDelay(FIRST_DELAY_MS);
+    lastShownAt.current = null;
   }, [market]);
 
   useEffect(() => {
     if (isPreview) return;
     if (blocked || dismissed) { setCurrent(null); return; }
     if (current) {
-      const t = window.setTimeout(() => { setCurrent(null); setDelay(GAP_MS); }, SHOW_MS);
+      const remaining = Math.max(0, (lastShownAt.current ?? Date.now()) + SALES_DISPLAY_MS - Date.now());
+      const t = window.setTimeout(() => setCurrent(null), remaining);
       return () => window.clearTimeout(t);
     }
     if (!eligibleKey) return;
     const session = readSession();
-    if (session.dismissed || session.shown.length >= MAX_IMPRESSIONS) return;
+    if (session.dismissed) return;
     let t = 0;
     const attempt = () => {
       if (document.hidden || isTypingFocused()) { t = window.setTimeout(attempt, RETRY_MS); return; }
       const s = readSession();
-      if (s.dismissed || s.shown.length >= MAX_IMPRESSIONS) return;
-      const next = eligibleRef.current.find(x => !s.shown.includes(x.id) && isEligibleSale(x, market, Date.now()));
+      if (s.dismissed) return;
+      const now = Date.now();
+      const next = getNextSale(eligibleRef.current, market, lastSaleIds.current[market], now);
       if (!next) return;
-      writeSession({ ...s, shown: [...s.shown, next.id] });
+      lastSaleIds.current[market] = next.id;
+      lastShownAt.current = now;
       setImgFailed(false);
       setCurrent(next);
     };
-    t = window.setTimeout(attempt, delay);
+    t = window.setTimeout(attempt, getSalesNotificationDelay(lastShownAt.current, Date.now()));
     return () => window.clearTimeout(t);
-  }, [blocked, dismissed, current, eligibleKey, delay, market, isPreview]);
+  }, [blocked, dismissed, current, eligibleKey, market, isPreview]);
 
   const sale: SaleNotification | null = isPreview ? {
     id: 0,
