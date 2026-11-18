@@ -18,8 +18,8 @@ test("only matching, recent, valid sales can be shown", () => {
     { purchasedAt: new Date(now - 31 * 86_400_000).toISOString() },
   ]) assert.equal(isEligibleSale({ ...sale, ...override }, "CA", now), false);
 });
-test("notification does not interrupt quote or contact forms", () => {
-  for (const path of ["/quote", "/quote/", "/quote?size=20", "/contact"]) {
+test("notification does not interrupt forms or private administration", () => {
+  for (const path of ["/quote", "/quote/", "/quote?size=20", "/contact", "/admin/sales", "/sign-in", "/sign-up/verify-email-address"]) {
     assert.equal(isSalesPopupBlockedPath(path), true);
   }
   assert.equal(isSalesPopupBlockedPath("/gensets"), false);

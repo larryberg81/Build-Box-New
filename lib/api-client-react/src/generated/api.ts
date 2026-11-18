@@ -6,23 +6,31 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
+  AdminSale,
+  AdminSession,
   GetSalesNotificationsParams,
   HealthStatus,
-  SaleNotification
+  SaleInput,
+  SaleNotification,
+  SaleVisibility
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
-import type { ErrorType } from '../custom-fetch';
+import type { ErrorType , BodyType } from '../custom-fetch';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -32,6 +40,375 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
+
+export const getGetAdminSessionUrl = () => {
+
+
+
+
+  return `/api/admin/session`
+}
+
+/**
+ * @summary Verify sales administrator access
+ */
+export const getAdminSession = async ( options?: RequestInit): Promise<AdminSession> => {
+
+  return customFetch<AdminSession>(getGetAdminSessionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminSessionQueryKey = () => {
+    return [
+    `/api/admin/session`
+    ] as const;
+    }
+
+
+export const getGetAdminSessionQueryOptions = <TData = Awaited<ReturnType<typeof getAdminSession>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminSessionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminSession>>> = ({ signal }) => getAdminSession({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminSession>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminSession>>>
+export type GetAdminSessionQueryError = ErrorType<void>
+
+
+/**
+ * @summary Verify sales administrator access
+ */
+
+export function useGetAdminSession<TData = Awaited<ReturnType<typeof getAdminSession>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminSessionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminSalesUrl = () => {
+
+
+
+
+  return `/api/admin/sales`
+}
+
+/**
+ * @summary List up to 500 sales including hidden records for the owner
+ */
+export const getAdminSales = async ( options?: RequestInit): Promise<AdminSale[]> => {
+
+  return customFetch<AdminSale[]>(getGetAdminSalesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminSalesQueryKey = () => {
+    return [
+    `/api/admin/sales`
+    ] as const;
+    }
+
+
+export const getGetAdminSalesQueryOptions = <TData = Awaited<ReturnType<typeof getAdminSales>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSales>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminSalesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminSales>>> = ({ signal }) => getAdminSales({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminSales>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminSalesQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminSales>>>
+export type GetAdminSalesQueryError = ErrorType<void>
+
+
+/**
+ * @summary List up to 500 sales including hidden records for the owner
+ */
+
+export function useGetAdminSales<TData = Awaited<ReturnType<typeof getAdminSales>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminSales>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminSalesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateAdminSaleUrl = () => {
+
+
+
+
+  return `/api/admin/sales`
+}
+
+/**
+ * @summary Add a genuinely completed sale
+ */
+export const createAdminSale = async (saleInput: SaleInput, options?: RequestInit): Promise<AdminSale> => {
+
+  return customFetch<AdminSale>(getCreateAdminSaleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saleInput,)
+  }
+);}
+
+
+
+
+export const getCreateAdminSaleMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminSale>>, TError,{data: BodyType<SaleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminSale>>, TError,{data: BodyType<SaleInput>}, TContext> => {
+
+const mutationKey = ['createAdminSale'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminSale>>, {data: BodyType<SaleInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminSale(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminSaleMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminSale>>>
+    export type CreateAdminSaleMutationBody = BodyType<SaleInput>
+    export type CreateAdminSaleMutationError = ErrorType<void>
+
+    /**
+ * @summary Add a genuinely completed sale
+ */
+export const useCreateAdminSale = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminSale>>, TError,{data: BodyType<SaleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminSale>>,
+        TError,
+        {data: BodyType<SaleInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminSaleMutationOptions(options));
+    }
+
+export const getUpdateAdminSaleUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/sales/${id}`
+}
+
+/**
+ * @summary Edit an existing sale without creating duplicates
+ */
+export const updateAdminSale = async (id: number,
+    saleInput: SaleInput, options?: RequestInit): Promise<AdminSale> => {
+
+  return customFetch<AdminSale>(getUpdateAdminSaleUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saleInput,)
+  }
+);}
+
+
+
+
+export const getUpdateAdminSaleMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminSale>>, TError,{id: number;data: BodyType<SaleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminSale>>, TError,{id: number;data: BodyType<SaleInput>}, TContext> => {
+
+const mutationKey = ['updateAdminSale'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminSale>>, {id: number;data: BodyType<SaleInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminSale(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminSaleMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminSale>>>
+    export type UpdateAdminSaleMutationBody = BodyType<SaleInput>
+    export type UpdateAdminSaleMutationError = ErrorType<void>
+
+    /**
+ * @summary Edit an existing sale without creating duplicates
+ */
+export const useUpdateAdminSale = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminSale>>, TError,{id: number;data: BodyType<SaleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminSale>>,
+        TError,
+        {id: number;data: BodyType<SaleInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminSaleMutationOptions(options));
+    }
+
+export const getSetAdminSaleVisibilityUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/sales/${id}/visibility`
+}
+
+/**
+ * @summary Hide or approve a verified sale for public display
+ */
+export const setAdminSaleVisibility = async (id: number,
+    saleVisibility: SaleVisibility, options?: RequestInit): Promise<AdminSale> => {
+
+  return customFetch<AdminSale>(getSetAdminSaleVisibilityUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saleVisibility,)
+  }
+);}
+
+
+
+
+export const getSetAdminSaleVisibilityMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAdminSaleVisibility>>, TError,{id: number;data: BodyType<SaleVisibility>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setAdminSaleVisibility>>, TError,{id: number;data: BodyType<SaleVisibility>}, TContext> => {
+
+const mutationKey = ['setAdminSaleVisibility'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setAdminSaleVisibility>>, {id: number;data: BodyType<SaleVisibility>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setAdminSaleVisibility(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetAdminSaleVisibilityMutationResult = NonNullable<Awaited<ReturnType<typeof setAdminSaleVisibility>>>
+    export type SetAdminSaleVisibilityMutationBody = BodyType<SaleVisibility>
+    export type SetAdminSaleVisibilityMutationError = ErrorType<void>
+
+    /**
+ * @summary Hide or approve a verified sale for public display
+ */
+export const useSetAdminSaleVisibility = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setAdminSaleVisibility>>, TError,{id: number;data: BodyType<SaleVisibility>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setAdminSaleVisibility>>,
+        TError,
+        {id: number;data: BodyType<SaleVisibility>},
+        TContext
+      > => {
+      return useMutation(getSetAdminSaleVisibilityMutationOptions(options));
+    }
 
 export const getGetSalesNotificationsUrl = (params: GetSalesNotificationsParams,) => {
   const normalizedParams = new URLSearchParams();

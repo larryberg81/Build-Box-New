@@ -54,6 +54,8 @@
     <script type="text/javascript">
       var Tawk_API = Tawk_API || {}, Tawk_LoadStart = new Date();
       (function () {
+        // Keep third-party visitor chat off private administration and sign-in pages.
+        if (/(?:^|\/)(admin|sign-in|sign-up)(?:\/|$)/.test(window.location.pathname)) return;
         var script = document.createElement("script");
         var firstScript = document.getElementsByTagName("script")[0];
         script.async = true;

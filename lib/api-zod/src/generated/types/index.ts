@@ -6,9 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './adminSale.js';
+export * from './adminSession.js';
 export * from './getSalesNotificationsCountry.js';
 export * from './getSalesNotificationsParams.js';
 export * from './healthStatus.js';
+export * from './saleInput.js';
+export * from './saleInputCountry.js';
+export * from './saleInputProductType.js';
 export * from './saleNotification.js';
 export * from './saleNotificationCountry.js';
 export * from './saleNotificationProductType.js';
+export * from './saleVisibility.js';

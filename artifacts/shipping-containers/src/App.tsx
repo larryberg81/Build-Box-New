@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -18,6 +19,11 @@ import { MarketProvider } from "@/contexts/market";
 import { SalesNotification } from "@/components/sales-notification";
 
 const queryClient = new QueryClient();
+const AdminAuthPortal = lazy(() => import("@/pages/admin-auth"));
+
+function AdminRoute() {
+  return <Suspense fallback={<p role="status" className="p-12 text-center">Loading secure sign-in…</p>}><AdminAuthPortal /></Suspense>;
+}
 
 function Router() {
   return (
@@ -25,6 +31,9 @@ function Router() {
       <Navbar />
       <main className="flex-1">
         <Switch>
+          <Route path="/admin/*?" component={AdminRoute} />
+          <Route path="/sign-in/*?" component={AdminRoute} />
+          <Route path="/sign-up/*?" component={AdminRoute} />
           <Route path="/" component={Home} />
           <Route path="/containers" component={Containers} />
           <Route path="/contact" component={Contact} />

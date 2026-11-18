@@ -15,10 +15,14 @@ async function invoke(method, url, body) {
     },
   });
   const request = new IncomingMessage(socket);
+  // Model a fully parsed HTTP message. Async authentication outlives the body
+  // stream; an incomplete fake IncomingMessage otherwise destroys its socket.
+  request.complete = true;
   request.method = method;
   request.url = url;
   const payload = body === undefined ? undefined : JSON.stringify(body);
-  request.headers = payload === undefined ? {} : {
+  request.headers = payload === undefined ? { host: "localhost" } : {
+    host: "localhost",
     "content-type": "application/json",
     "content-length": String(Buffer.byteLength(payload)),
   };
@@ -65,5 +69,15 @@ assert.equal(badCountry.status, 400);
 if (!process.env.DATABASE_URL) {
   const noDatabase = await invoke("GET", "/api/sales-notifications?country=US");
   assert.equal(noDatabase.status, 503);
+}
+for (const [method, url, body] of [
+  ["GET", "/api/admin/session"],
+  ["GET", "/api/admin/sales"],
+  ["POST", "/api/admin/sales", {}],
+  ["PUT", "/api/admin/sales/1", {}],
+  ["PATCH", "/api/admin/sales/1/visibility", { displayApproved: true }],
+]) {
+  const result = await invoke(method, url, body);
+  assert.ok([401, 503].includes(result.status), `${method} ${url} must deny anonymous access`);
 }
 console.log("Vercel API entry verified: health, contact validation and sales isolation passed; no email sent.");

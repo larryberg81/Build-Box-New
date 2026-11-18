@@ -11,6 +11,118 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /admin/session:
+    get:
+      operationId: getAdminSession
+      summary: Verify sales administrator access
+      responses:
+        "200":
+          description: Authenticated verified owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+        "401":
+          description: Sign in required
+        "403":
+          description: Not a sales administrator
+        "503":
+          description: Authentication not configured
+  /admin/sales:
+    get:
+      operationId: getAdminSales
+      summary: List up to 500 sales including hidden records for the owner
+      responses:
+        "200":
+          description: Owner-only sales
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminSale"
+        "401":
+          description: Sign in required
+        "403":
+          description: Owner access required
+    post:
+      operationId: createAdminSale
+      summary: Add a genuinely completed sale
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaleInput"
+      responses:
+        "201":
+          description: Sale created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSale"
+        "400":
+          description: Invalid sale details
+        "409":
+          description: Order reference already exists
+  /admin/sales/{id}:
+    put:
+      operationId: updateAdminSale
+      summary: Edit an existing sale without creating duplicates
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaleInput"
+      responses:
+        "200":
+          description: Updated sale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSale"
+        "400":
+          description: Invalid sale details
+        "404":
+          description: Sale not found
+        "409":
+          description: Order reference already exists
+  /admin/sales/{id}/visibility:
+    patch:
+      operationId: setAdminSaleVisibility
+      summary: Hide or approve a verified sale for public display
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaleVisibility"
+      responses:
+        "200":
+          description: Visibility updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSale"
+        "404":
+          description: Sale not found
+        "409":
+          description: Unverified sale cannot be published
   /sales-notifications:
     get:
       operationId: getSalesNotifications
@@ -51,6 +163,68 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    AdminSession:
+      type: object
+      required: [isAdmin]
+      properties:
+        isAdmin:
+          type: boolean
+    SaleVisibility:
+      type: object
+      additionalProperties: false
+      required: [displayApproved]
+      properties:
+        displayApproved:
+          type: boolean
+    SaleInput:
+      type: object
+      additionalProperties: false
+      required: [sourceReference, country, productType, productName, city, purchasedAt, imagePath, verified, displayApproved]
+      properties:
+        sourceReference:
+          type: string
+          minLength: 1
+          maxLength: 120
+        country:
+          type: string
+          enum: [US, CA]
+        productType:
+          type: string
+          enum: [container, genset]
+        productName:
+          type: string
+          minLength: 1
+          maxLength: 160
+        city:
+          type: string
+          minLength: 1
+          maxLength: 100
+        purchasedAt:
+          type: string
+          format: date-time
+        imagePath:
+          type: [string, "null"]
+          maxLength: 300
+        verified:
+          type: boolean
+          enum: [true]
+        displayApproved:
+          type: boolean
+    AdminSale:
+      allOf:
+        - $ref: "#/components/schemas/SaleNotification"
+        - type: object
+          required: [sourceReference, verified, displayApproved, createdAt]
+          properties:
+            sourceReference:
+              type: string
+            verified:
+              type: boolean
+            displayApproved:
+              type: boolean
+            createdAt:
+              type: string
+              format: date-time
     SaleNotification:
       type: object
       required: [id, country, productType, productName, city, purchasedAt, imagePath]

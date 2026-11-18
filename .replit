@@ -55,6 +55,7 @@ externalPort = 3000
 
 [userenv.shared]
 CONTACT_EMAIL = "info@builtboxcontainer.com"
+SALES_ADMIN_EMAIL = "larryberg81@gmail.com"
 
 [nix]
 channel = "stable-25_05"

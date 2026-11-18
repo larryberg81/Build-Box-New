@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="288" height="48" viewBox="0 0 288 48" role="img" aria-label="Built Box Containers">
+  <g fill="none" stroke="#D94A00" stroke-width="2.4" stroke-linejoin="round">
+    <path d="m22 7 16 9v18l-16 9-16-9V16Z"/>
+    <path d="m6 16 16 9 16-9M22 25v18M14 11l16 9"/>
+  </g>
+  <g fill="#20262D" font-family="Arial,sans-serif" font-weight="700">
+    <text x="50" y="23" font-size="20">BUILT BOX</text>
+    <text x="50" y="39" font-size="12" letter-spacing="2.4">CONTAINERS</text>
+  </g>
+</svg>

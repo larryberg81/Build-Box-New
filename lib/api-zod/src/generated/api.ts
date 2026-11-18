@@ -9,6 +9,138 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Verify sales administrator access
+ */
+export const GetAdminSessionResponse = zod.object({
+  "isAdmin": zod.boolean()
+})
+
+
+/**
+ * @summary List up to 500 sales including hidden records for the owner
+ */
+export const GetAdminSalesResponseItem = zod.object({
+  "id": zod.number(),
+  "country": zod.enum(['US', 'CA']),
+  "productType": zod.enum(['container', 'genset']),
+  "productName": zod.string(),
+  "city": zod.string(),
+  "purchasedAt": zod.coerce.date(),
+  "imagePath": zod.string().nullable()
+}).and(zod.object({
+  "sourceReference": zod.string(),
+  "verified": zod.boolean(),
+  "displayApproved": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}))
+export const GetAdminSalesResponse = zod.array(GetAdminSalesResponseItem)
+
+
+/**
+ * @summary Add a genuinely completed sale
+ */
+export const createAdminSaleBodySourceReferenceMax = 120;
+
+export const createAdminSaleBodyProductNameMax = 160;
+
+export const createAdminSaleBodyCityMax = 100;
+
+export const createAdminSaleBodyImagePathMax = 300;
+
+
+
+export const CreateAdminSaleBody = zod.object({
+  "sourceReference": zod.string().min(1).max(createAdminSaleBodySourceReferenceMax),
+  "country": zod.enum(['US', 'CA']),
+  "productType": zod.enum(['container', 'genset']),
+  "productName": zod.string().min(1).max(createAdminSaleBodyProductNameMax),
+  "city": zod.string().min(1).max(createAdminSaleBodyCityMax),
+  "purchasedAt": zod.coerce.date(),
+  "imagePath": zod.string().max(createAdminSaleBodyImagePathMax).nullable(),
+  "verified": zod.literal(true),
+  "displayApproved": zod.boolean()
+})
+
+
+/**
+ * @summary Edit an existing sale without creating duplicates
+ */
+
+
+
+export const UpdateAdminSaleParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const updateAdminSaleBodySourceReferenceMax = 120;
+
+export const updateAdminSaleBodyProductNameMax = 160;
+
+export const updateAdminSaleBodyCityMax = 100;
+
+export const updateAdminSaleBodyImagePathMax = 300;
+
+
+
+export const UpdateAdminSaleBody = zod.object({
+  "sourceReference": zod.string().min(1).max(updateAdminSaleBodySourceReferenceMax),
+  "country": zod.enum(['US', 'CA']),
+  "productType": zod.enum(['container', 'genset']),
+  "productName": zod.string().min(1).max(updateAdminSaleBodyProductNameMax),
+  "city": zod.string().min(1).max(updateAdminSaleBodyCityMax),
+  "purchasedAt": zod.coerce.date(),
+  "imagePath": zod.string().max(updateAdminSaleBodyImagePathMax).nullable(),
+  "verified": zod.literal(true),
+  "displayApproved": zod.boolean()
+})
+
+export const UpdateAdminSaleResponse = zod.object({
+  "id": zod.number(),
+  "country": zod.enum(['US', 'CA']),
+  "productType": zod.enum(['container', 'genset']),
+  "productName": zod.string(),
+  "city": zod.string(),
+  "purchasedAt": zod.coerce.date(),
+  "imagePath": zod.string().nullable()
+}).and(zod.object({
+  "sourceReference": zod.string(),
+  "verified": zod.boolean(),
+  "displayApproved": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}))
+
+
+/**
+ * @summary Hide or approve a verified sale for public display
+ */
+
+
+
+export const SetAdminSaleVisibilityParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const SetAdminSaleVisibilityBody = zod.object({
+  "displayApproved": zod.boolean()
+})
+
+export const SetAdminSaleVisibilityResponse = zod.object({
+  "id": zod.number(),
+  "country": zod.enum(['US', 'CA']),
+  "productType": zod.enum(['container', 'genset']),
+  "productName": zod.string(),
+  "city": zod.string(),
+  "purchasedAt": zod.coerce.date(),
+  "imagePath": zod.string().nullable()
+}).and(zod.object({
+  "sourceReference": zod.string(),
+  "verified": zod.boolean(),
+  "displayApproved": zod.boolean(),
+  "createdAt": zod.coerce.date()
+}))
+
+
+/**
  * @summary Approved completed sales for the selected country
  */
 export const GetSalesNotificationsQueryParams = zod.object({

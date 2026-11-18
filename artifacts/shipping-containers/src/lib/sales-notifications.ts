@@ -11,7 +11,7 @@ export function isEligibleSale(sale: SaleNotification, market: "US" | "CA", now:
 }
 
 export function isSalesPopupBlockedPath(path: string): boolean {
-  return /^\/(quote|contact)(\/|$|\?)/.test(path);
+  return /^\/(quote|contact|admin|sign-in|sign-up)(\/|$|\?)/.test(path);
 }
 
 export function resolvePublicImage(path: string | null, base: string): string | null {

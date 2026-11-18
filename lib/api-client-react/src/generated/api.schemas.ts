@@ -5,6 +5,58 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface AdminSession {
+  isAdmin: boolean;
+}
+
+export interface SaleVisibility {
+  displayApproved: boolean;
+}
+
+export type SaleInputCountry = typeof SaleInputCountry[keyof typeof SaleInputCountry];
+
+
+export const SaleInputCountry = {
+  US: 'US',
+  CA: 'CA',
+} as const;
+
+export type SaleInputProductType = typeof SaleInputProductType[keyof typeof SaleInputProductType];
+
+
+export const SaleInputProductType = {
+  container: 'container',
+  genset: 'genset',
+} as const;
+
+export interface SaleInput {
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  sourceReference: string;
+  country: SaleInputCountry;
+  productType: SaleInputProductType;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  productName: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  city: string;
+  purchasedAt: string;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  imagePath: string | null;
+  verified: true;
+  displayApproved: boolean;
+}
+
 export type SaleNotificationCountry = typeof SaleNotificationCountry[keyof typeof SaleNotificationCountry];
 
 
@@ -31,6 +83,13 @@ export interface SaleNotification {
   /** @nullable */
   imagePath: string | null;
 }
+
+export type AdminSale = SaleNotification & {
+  sourceReference: string;
+  verified: boolean;
+  displayApproved: boolean;
+  createdAt: string;
+};
 
 export interface HealthStatus {
   status: string;
